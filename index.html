@@ -5,55 +5,52 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#3b3b3b">
 <title>Strobe Tuner</title>
+<!-- Pixelify Sans: pixeltypsnitt som liknar Chicago och fungerar på alla enheter, även iPhone/Safari -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
 <style>
-  /* Chicago: lägg ChicagoFLF.woff2 (eller .ttf) bredvid filen, annars används systemets Chicago om den finns. */
-  @font-face {
-    font-family: "Chicago";
-    src: local("Chicago"), local("ChicagoFLF"), local("Chicago_12"),
-         url("ChicagoFLF.woff2") format("woff2"),
-         url("ChicagoFLF.ttf") format("truetype");
-    font-display: swap;
-  }
   :root {
     --bg: #3b3b3b;
     --or: #f58a2d;
-    --font: "Chicago", "ChicagoFLF", "Chicago_12", "Charcoal", "Geneva", "Helvetica Neue", Arial, sans-serif;
+    --font: "Pixelify Sans", "Chicago", "ChicagoFLF", "Charcoal", "Geneva", monospace;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; background: var(--bg); color: var(--or); font-family: var(--font); }
+  html, body { margin: 0; background: var(--bg); color: var(--or); font-family: var(--font); font-weight: 600; }
   body {
     min-height: 100%; display: flex; justify-content: center;
     padding: max(8px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
-    user-select: none; -webkit-user-select: none;
+    user-select: none; -webkit-user-select: none; -webkit-text-size-adjust: 100%;
   }
-  .wrap { position: relative; width: 100%; max-width: 300px; aspect-ratio: 1; container-type: inline-size; }
+  /* Ritytan är 270 × 304 enheter; allt placeras i procent av den */
+  .wrap { position: relative; width: 100%; max-width: 340px; aspect-ratio: 270 / 304; container-type: inline-size; overflow: hidden; }
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   button, input {
-    font-family: var(--font); color: var(--or); background: transparent; border: none; border-radius: 0;
-    cursor: pointer; padding: 0; margin: 0;
+    font-family: var(--font); font-weight: 600; color: var(--or); background: transparent; border: none; border-radius: 0;
+    cursor: pointer; padding: 0; margin: 0; -webkit-appearance: none; appearance: none;
   }
   button:focus-visible, input:focus-visible { outline: 2px solid #fff8; outline-offset: -3px; }
 
-  /* A-referens: ruta uppe till vänster (0–70 % bredd, 0–20 % höjd) */
-  .ref { position: absolute; left: 32%; top: 0; width: 40%; height: 40%; display: flex; flex-direction: column; align-items: stretch; }
-  .ref button { height: 22%; font-size: 10cqw; line-height: 1; }
-  .ref input { width: 100%; height: 26%; text-align: center; font-size: 8cqw; cursor: text; -moz-appearance: textfield; }
-  .ref input::-webkit-outer-spin-button, .ref input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+  .adj { position: absolute; left: 5.6%; width: 9.6%; height: 8.6%; font-size: 10cqw; line-height: 1; }
+  #plus  { top: 3.6%; }
+  #minus { top: 28.6%; }
+  #refIn {
+    position: absolute; left: 5.2%; top: 13.2%; width: 38.5%; height: 14.5%;
+    font-size: 13.3cqw; text-align: left; padding-left: 1%; cursor: text; -moz-appearance: textfield;
+  }
+  #refIn::-webkit-outer-spin-button, #refIn::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 
-  /* Start/Stopp: ruta uppe till höger (74–100 % bredd) */
-  #start { position: absolute; right: 0; top: 0; width: 26%; height: 14%; font-size: 5.4cqw; }
+  #start { position: absolute; left: 49.3%; top: 1.3%; width: 47.8%; height: 11.8%; font-size: 8.5cqw; letter-spacing: .5px; }
   #start.on { color: var(--bg); }
 </style>
 </head>
 <body>
 <div class="wrap" id="wrap">
   <canvas id="cv"></canvas>
-  <div class="ref">
-    <button id="plus" aria-label="Höj A-referens">+</button>
-    <input id="refIn" type="number" inputmode="decimal" min="400" max="480" step="0.1" value="440" aria-label="A-referens i Hz">
-    <button id="minus" aria-label="Sänk A-referens">−</button>
-  </div>
-  <button id="start">Start</button>
+  <button class="adj" id="plus" aria-label="Höj A-referens">+</button>
+  <input id="refIn" type="number" inputmode="decimal" min="400" max="480" step="0.1" value="440" aria-label="A-referens i Hz">
+  <button class="adj" id="minus" aria-label="Sänk A-referens">−</button>
+  <button id="start">START</button>
 </div>
 
 <script>
@@ -99,10 +96,10 @@
       const mute = actx.createGain(); mute.gain.value = 0;   // tyst utgång så grafen bearbetas
       analyser.connect(mute); mute.connect(actx.destination);
       running = true;
-      $('start').textContent = 'Stopp'; $('start').classList.add('on');
+      $('start').textContent = 'STOP'; $('start').classList.add('on');
     } catch (err) {
-      $('start').textContent = 'Fel';
-      setTimeout(() => { $('start').textContent = 'Start'; }, 2000);
+      $('start').textContent = 'FEL';
+      setTimeout(() => { $('start').textContent = 'START'; }, 2000);
     }
   }
   function stop() {
@@ -110,7 +107,7 @@
     if (stream) stream.getTracks().forEach(t => t.stop());
     if (actx) actx.close();
     stream = null; actx = null;
-    $('start').textContent = 'Start'; $('start').classList.remove('on');
+    $('start').textContent = 'START'; $('start').classList.remove('on');
   }
   $('start').onclick = () => running ? stop() : start();
   document.addEventListener('visibilitychange', () => { if (actx && actx.state === 'suspended') actx.resume(); });
@@ -169,10 +166,20 @@
     }
   }
 
-  /* ---------- Geometri (enheter av S; cirkelns mittpunkt i nedre högra hörnet) ---------- */
-  const R_FRAME = 0.86;   // rutornas nedre kant följer denna cirkel
-  const REF_X   = [0.32, 0.72],  REF_H   = 0.40;   // smal och hög, flyttad åt höger
-  const START_X = [0.74, 1],  START_H = 0.20;
+  /* ---------- Geometri ----------
+     Enhet u = bredd / 270; ritytan är 270 × 304 u.
+     Stroboskopet är en kvartscirkel med mittpunkt i nedre högra hörnet (CX, CY).
+     Ringens yttre kant ligger exakt på X_LEFT, och cirkelns högra tangent på X_RIGHT,
+     så rutornas ytterkanter linjerar med stroboskopets mått. */
+  const X_LEFT = 8, X_RIGHT = 262, H = 304;
+  const CX = X_RIGHT, CY = H;
+  const R_OUT = CX - X_LEFT;                 // 254
+  const R_FRAME = R_OUT + 10;                // rutornas nedre kant följer denna båge
+  const REF_BOX   = { x0: X_LEFT, x1: 125, top: 4 };
+  const START_BOX = { x0: 133, x1: X_RIGHT, top: 4 };
+  const OUTER = { r: R_OUT - 29, w: 58, n: 15, duty: 0.5  };   // 196–254
+  const INNER = { r: 168,        w: 44, n: 30, duty: 0.65 };   // 146–190
+  const LW = 1.6;
 
   let phaseOuter = 0, phaseInner = 0, last = performance.now(), size = 0;
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -184,33 +191,27 @@
   }
   window.addEventListener('resize', resize);
 
-  // Ruta uppe i hörnet: nedre kanten är lägst av platt höjd och stroboskopets cirkelbåge
-  function boxPath(x0, x1, H, S) {
-    const lw = 2, inset = lw / 2;
-    const bottom = x => {
-      const dx = 1 - x;
-      const arc = dx < R_FRAME ? 1 - Math.sqrt(R_FRAME * R_FRAME - dx * dx) : H;
-      return Math.min(H, arc) * S - inset;
-    };
+  // Ruta: rak topp och raka sidor, nedre kanten är cirkelbågen runt stroboskopet
+  function boxPath(b, u, inset) {
+    const x0 = b.x0 + inset, x1 = b.x1 - inset, top = b.top + inset;
+    const yAt = x => CY - Math.sqrt(R_FRAME * R_FRAME - (CX - x) * (CX - x));
+    const aAt = x => Math.atan2(yAt(x) - CY, x - CX);
     ctx.beginPath();
-    ctx.moveTo(x0 * S + inset, inset);
-    ctx.lineTo(x1 * S - inset, inset);
-    const N = 24;
-    for (let i = 0; i <= N; i++) {
-      const x = x1 - (x1 - x0) * i / N;
-      ctx.lineTo(clamp(x * S, x0 * S + inset, x1 * S - inset), bottom(x));
-    }
+    ctx.moveTo(x0 * u, top * u);
+    ctx.lineTo(x1 * u, top * u);
+    ctx.lineTo(x1 * u, yAt(x1) * u);
+    ctx.arc(CX * u, CY * u, R_FRAME * u, aAt(x1), aAt(x0), true);
     ctx.closePath();
   }
 
-  function ring(cx, cy, rMid, width, n, phase, alpha, glow) {
-    const seg = Math.PI * 2 / n;
+  function ring(u, g, phase, alpha, glow) {
+    const seg = Math.PI * 2 / g.n;
     ctx.save();
-    ctx.lineWidth = width; ctx.strokeStyle = OR; ctx.globalAlpha = alpha;
-    if (glow) { ctx.shadowColor = OR; ctx.shadowBlur = size * 0.03; }
-    for (let i = 0; i < n; i++) {
+    ctx.lineWidth = g.w * u; ctx.strokeStyle = OR; ctx.globalAlpha = alpha;
+    if (glow) { ctx.shadowColor = OR; ctx.shadowBlur = 8 * u; }
+    for (let i = 0; i < g.n; i++) {
       const a0 = phase + i * seg - Math.PI / 2;
-      ctx.beginPath(); ctx.arc(cx, cy, rMid, a0, a0 + seg / 2); ctx.stroke();
+      ctx.beginPath(); ctx.arc(CX * u, CY * u, g.r * u, a0, a0 + seg * g.duty); ctx.stroke();
     }
     ctx.restore();
   }
@@ -219,44 +220,49 @@
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     detect(now);
     if (!size) resize();
-    const S = size, cx = S, cy = S;
-    ctx.clearRect(0, 0, S, S);
+    const u = size / 270;
+    ctx.clearRect(0, 0, size, size * H / 270);
 
-    // Rutor
-    ctx.lineWidth = 2; ctx.strokeStyle = OR; ctx.lineJoin = 'round';
-    boxPath(REF_X[0], REF_X[1], REF_H, S); ctx.stroke();
-    boxPath(START_X[0], START_X[1], START_H, S);
-    if (running) { ctx.fillStyle = OR; ctx.fill(); }
-    ctx.stroke();
-
-    // Stroboskop
     const live = state.active, c = live ? state.cents : 0;
     if (live) {
-      phaseOuter += clamp(c, -50, 50) * 3 * dt * Math.PI / 180;
-      phaseInner += clamp(c, -12, 12) * 15 * dt * Math.PI / 180;
+      phaseOuter += clamp(c, -50, 50) * 2.4 * dt * Math.PI / 180;     // grov skala
+      phaseInner += clamp(c, -12, 12) * 12 * dt * Math.PI / 180;      // fin skala
     }
     const inTune = live && Math.abs(c) < 2, alpha = live ? 1 : 0.3;
 
-    ring(cx, cy, S * 0.76, S * 0.14, 12, phaseOuter, alpha, inTune);   // grov skala
-    ring(cx, cy, S * 0.60, S * 0.14, 24, phaseInner, alpha, inTune);   // fin skala
+    // Rutor
+    ctx.lineWidth = LW * u; ctx.strokeStyle = OR; ctx.lineJoin = 'miter';
+    boxPath(REF_BOX, u, LW / 2); ctx.stroke();
+    if (running) { boxPath(START_BOX, u, 0); ctx.fillStyle = OR; ctx.fill(); }
+    else { boxPath(START_BOX, u, LW / 2); ctx.stroke(); }
+
+    // Stroboskop: yttre grov och inre fin skala
+    ring(u, OUTER, phaseOuter, alpha, inTune);
+    ring(u, INNER, phaseInner, alpha, inTune);
 
     if (inTune) {
-      ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, S * 0.47, Math.PI, Math.PI * 1.5); ctx.closePath();
+      ctx.beginPath(); ctx.arc(CX * u, CY * u, 140 * u, 0, Math.PI * 2);
       ctx.fillStyle = OR; ctx.fill();
     }
 
+    // Ton: större, centrerad nära kvartsskivans diagonal (nere till höger)
+    const label = live ? NAMES[((state.midi % 12) + 12) % 12] : '–';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = inTune ? BG : OR; ctx.globalAlpha = live ? 1 : 0.35;
-    ctx.font = `${S * 0.2}px ${FONT}`;
-    ctx.fillText(live ? NAMES[((state.midi % 12) + 12) % 12] : '–', S * 0.76, S * 0.76);
+    ctx.font = `600 ${78 * u}px ${FONT}`;
+    const tw = ctx.measureText(label).width / u;
+    const tx = Math.min(CX - 60, CX - 12 - tw / 2);
+    ctx.fillText(label, tx * u, (CY - 60) * u);
     ctx.globalAlpha = 1;
 
     requestAnimationFrame(draw);
   }
 
   setRef(ref);
-  (document.fonts && document.fonts.load ? document.fonts.load(`16px ${FONT}`) : Promise.resolve())
-    .catch(() => {}).finally(() => { resize(); requestAnimationFrame(draw); });
+  const fontReady = document.fonts && document.fonts.load
+    ? Promise.race([document.fonts.load('600 16px "Pixelify Sans"'), new Promise(r => setTimeout(r, 2500))])
+    : Promise.resolve();
+  fontReady.catch(() => {}).finally(() => { resize(); requestAnimationFrame(draw); });
 })();
 </script>
 </body>
