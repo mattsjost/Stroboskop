@@ -273,19 +273,16 @@
     else { boxPath(START_BOX, u, LW / 2); ctx.stroke(); }
 
     // Stroboskop: yttre grov och inre fin skala
+    // Klipp stroboskopet till kvadranten: inget ritas till höger om X_RIGHT (och inget under nederkanten)
+    ctx.save();
+    ctx.beginPath(); ctx.rect(0, 0, CX * u, CY * u); ctx.clip();
     ring(u, OUTER, phaseOuter, alpha, inTune);
     ring(u, INNER, phaseInner, alpha, inTune);
-
-    // Fasta ändstopp: skalans högra kant (x = X_RIGHT) och nedre kant, linjerar med rutorna
-    ctx.save(); ctx.fillStyle = OR; ctx.globalAlpha = alpha;
-    ctx.fillRect((CX - LW) * u, (CY - R_OUT) * u, LW * u, (R_OUT - 146) * u);
-    ctx.fillRect(X_LEFT * u, (CY - LW) * u, (R_OUT - 146) * u, LW * u);
-    ctx.restore();
-
     if (inTune) {
       ctx.beginPath(); ctx.arc(CX * u, CY * u, 142 * u, 0, Math.PI * 2);
       ctx.fillStyle = OR; ctx.fill();
     }
+    ctx.restore();
 
     // Ton: grundtonen centrerad på sin fasta plats, # mindre till höger
     const name = live ? NAMES[((state.midi % 12) + 12) % 12] : '–';
