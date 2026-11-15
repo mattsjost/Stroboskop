@@ -5,18 +5,26 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#3b3b3b">
 <title>Strobe Tuner</title>
-<!-- Pixelify Sans: pixeltypsnitt som liknar Chicago och fungerar på alla enheter, även iPhone/Safari -->
+<!-- ChicagoFLF (Robin Casady, public domain): webbtypsnitt från fontlibrary.org, fungerar även på iPhone/Safari -->
+<link rel="stylesheet" media="screen" href="https://fontlibrary.org//face/chicagoflf" type="text/css">
+<!-- Reserv om ovanstående inte laddas: Pixelify Sans -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap" rel="stylesheet">
 <style>
+  /* Valfritt och säkrast: lägg ChicagoFLF.woff2 eller ChicagoFLF.ttf bredvid denna fil, så används den i första hand */
+  @font-face {
+    font-family: "ChicagoFLFLocal";
+    src: url("ChicagoFLF.woff2") format("woff2"), url("ChicagoFLF.ttf") format("truetype");
+    font-weight: normal; font-style: normal; font-display: swap;
+  }
   :root {
     --bg: #3b3b3b;
     --or: #f58a2d;
-    --font: "Pixelify Sans", "Chicago", "ChicagoFLF", "Charcoal", "Geneva", monospace;
+    --font: "ChicagoFLFLocal", "ChicagoFLFRegular", "Chicago", "ChicagoFLF", "Pixelify Sans", "Charcoal", "Geneva", monospace;
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body { margin: 0; background: var(--bg); color: var(--or); font-family: var(--font); font-weight: 600; }
+  html, body { margin: 0; background: var(--bg); color: var(--or); font-family: var(--font); font-weight: 400; }
   body {
     min-height: 100%; display: flex; justify-content: center;
     padding: max(8px, env(safe-area-inset-top)) 10px max(10px, env(safe-area-inset-bottom));
@@ -26,7 +34,7 @@
   .wrap { position: relative; width: 100%; max-width: 340px; aspect-ratio: 270 / 304; container-type: inline-size; overflow: hidden; }
   canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
   button, input {
-    font-family: var(--font); font-weight: 600; color: var(--or); background: transparent; border: none; border-radius: 0;
+    font-family: var(--font); font-weight: 400; color: var(--or); background: transparent; border: none; border-radius: 0;
     cursor: pointer; padding: 0; margin: 0; -webkit-appearance: none; appearance: none;
   }
   button:focus-visible, input:focus-visible { outline: 2px solid #fff8; outline-offset: -3px; }
@@ -179,7 +187,7 @@
   const START_BOX = { x0: 133, x1: X_RIGHT, top: 4 };
   const OUTER = { r: R_OUT - 29, w: 58, n: 15, duty: 0.5  };   // 196–254
   const INNER = { r: 168,        w: 44, n: 30, duty: 0.65 };   // 146–190
-  const LW = 1.6;
+  const LW = 3.4;                            // ramarnas linjetjocklek
 
   let phaseOuter = 0, phaseInner = 0, last = performance.now(), size = 0;
   const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -249,10 +257,10 @@
     const label = live ? NAMES[((state.midi % 12) + 12) % 12] : '–';
     ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
     ctx.fillStyle = inTune ? BG : OR; ctx.globalAlpha = live ? 1 : 0.35;
-    ctx.font = `600 ${78 * u}px ${FONT}`;
+    ctx.font = `400 ${80 * u}px ${FONT}`;
     const tw = ctx.measureText(label).width / u;
     const tx = Math.min(CX - 60, CX - 12 - tw / 2);
-    ctx.fillText(label, tx * u, (CY - 60) * u);
+    ctx.fillText(label, tx * u, (CY - 54) * u);
     ctx.globalAlpha = 1;
 
     requestAnimationFrame(draw);
@@ -260,7 +268,14 @@
 
   setRef(ref);
   const fontReady = document.fonts && document.fonts.load
-    ? Promise.race([document.fonts.load('600 16px "Pixelify Sans"'), new Promise(r => setTimeout(r, 2500))])
+    ? Promise.race([
+        Promise.all([
+          document.fonts.load('16px "ChicagoFLFLocal"').catch(() => {}),
+          document.fonts.load('16px "ChicagoFLFRegular"').catch(() => {}),
+          document.fonts.load('16px "Pixelify Sans"').catch(() => {})
+        ]),
+        new Promise(r => setTimeout(r, 2500))
+      ])
     : Promise.resolve();
   fontReady.catch(() => {}).finally(() => { resize(); requestAnimationFrame(draw); });
 })();
