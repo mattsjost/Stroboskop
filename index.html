@@ -15,7 +15,10 @@
   /* Valfritt och säkrast: lägg ChicagoFLF.woff2 eller ChicagoFLF.ttf bredvid denna fil, så används den i första hand */
   @font-face {
     font-family: "ChicagoFLFLocal";
-    src: url("ChicagoFLF.woff2") format("woff2"), url("ChicagoFLF.ttf") format("truetype");
+    src: url("ChicagoFLF.woff2") format("woff2"),
+         url("ChicagoFLF.ttf") format("truetype"),
+         url("https://db.onlinewebfonts.com/t/53dc764fd0dbbb3140b7909afd437722.woff2") format("woff2"),
+         url("https://db.onlinewebfonts.com/t/53dc764fd0dbbb3140b7909afd437722.woff") format("woff");
     font-weight: normal; font-style: normal; font-display: swap;
   }
   :root {
@@ -224,6 +227,31 @@
     ctx.restore();
   }
 
+  /* Tonens placering: grundtonens bokstav har alltid samma plats, och # ritas mindre
+     till höger om den. Största möjliga storlek beräknas så att hela tecknet (inklusive #)
+     ryms inom R_SAFE från cirkelns mittpunkt och M enheter från höger- och nederkanten. */
+  const SHARP_R = 0.55, GAP_EM = 0.05, M = 14, R_SAFE = 138;
+  function toneLayout() {
+    ctx.font = `400 100px ${FONT}`;
+    let wb = 0;
+    for (const ch of 'ABCDEFG') wb = Math.max(wb, ctx.measureText(ch).width);
+    const mH = ctx.measureText('H'), mS = ctx.measureText('#');
+    const cap = mH.actualBoundingBoxAscent || 70;
+    const sa = mS.actualBoundingBoxAscent || cap;
+    const wbE = wb / 100, capE = cap / 100;
+    const swE = mS.width / 100 * SHARP_R, saE = sa / 100 * SHARP_R;
+    const a = wbE + GAP_EM + swE, b = capE;
+    const A = a * a + b * b, B = 2 * M * (a + b), C = 2 * M * M - R_SAFE * R_SAFE;
+    const F = Math.min(130, (-B + Math.sqrt(B * B - 4 * A * C)) / (2 * A));
+    const left = CX - M - F * a, bottom = CY - M, top = bottom - F * b;
+    return {
+      F, bottom,
+      baseX: left + F * wbE / 2,
+      sharpX: left + F * (wbE + GAP_EM),
+      sharpY: top + F * saE
+    };
+  }
+
   function draw(now) {
     const dt = Math.min(0.05, (now - last) / 1000); last = now;
     detect(now);
@@ -248,19 +276,30 @@
     ring(u, OUTER, phaseOuter, alpha, inTune);
     ring(u, INNER, phaseInner, alpha, inTune);
 
+    // Fasta ändstopp: skalans högra kant (x = X_RIGHT) och nedre kant, linjerar med rutorna
+    ctx.save(); ctx.fillStyle = OR; ctx.globalAlpha = alpha;
+    ctx.fillRect((CX - LW) * u, (CY - R_OUT) * u, LW * u, (R_OUT - 146) * u);
+    ctx.fillRect(X_LEFT * u, (CY - LW) * u, (R_OUT - 146) * u, LW * u);
+    ctx.restore();
+
     if (inTune) {
-      ctx.beginPath(); ctx.arc(CX * u, CY * u, 140 * u, 0, Math.PI * 2);
+      ctx.beginPath(); ctx.arc(CX * u, CY * u, 142 * u, 0, Math.PI * 2);
       ctx.fillStyle = OR; ctx.fill();
     }
 
-    // Ton: större, centrerad nära kvartsskivans diagonal (nere till höger)
-    const label = live ? NAMES[((state.midi % 12) + 12) % 12] : '–';
-    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    // Ton: grundtonen centrerad på sin fasta plats, # mindre till höger
+    const name = live ? NAMES[((state.midi % 12) + 12) % 12] : '–';
+    const L = toneLayout();
     ctx.fillStyle = inTune ? BG : OR; ctx.globalAlpha = live ? 1 : 0.35;
-    ctx.font = `400 ${80 * u}px ${FONT}`;
-    const tw = ctx.measureText(label).width / u;
-    const tx = Math.min(CX - 60, CX - 12 - tw / 2);
-    ctx.fillText(label, tx * u, (CY - 54) * u);
+    ctx.textBaseline = 'alphabetic';
+    ctx.textAlign = 'center';
+    ctx.font = `400 ${L.F * u}px ${FONT}`;
+    ctx.fillText(name[0], L.baseX * u, L.bottom * u);
+    if (name.length > 1) {
+      ctx.textAlign = 'left';
+      ctx.font = `400 ${L.F * SHARP_R * u}px ${FONT}`;
+      ctx.fillText('#', L.sharpX * u, L.sharpY * u);
+    }
     ctx.globalAlpha = 1;
 
     requestAnimationFrame(draw);
