@@ -35,7 +35,9 @@
   }
   /* Ritytan är 270 × 304 enheter; allt placeras i procent av den */
   .wrap { position: relative; width: 100%; max-width: 340px; aspect-ratio: 270 / 304; container-type: inline-size; overflow: hidden; }
-  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+  canvas { position: absolute; inset: 0; width: 100%; height: 100%; display: block;
+           /* klipp bort allt till höger om kvadranten (8 av 270 enheter), oberoende av canvas-koden */
+           -webkit-clip-path: inset(0 2.963% 0 0); clip-path: inset(0 2.963% 0 0); }
   button, input {
     font-family: var(--font); font-weight: 400; color: var(--or); background: transparent; border: none; border-radius: 0;
     cursor: pointer; padding: 0; margin: 0; -webkit-appearance: none; appearance: none;
